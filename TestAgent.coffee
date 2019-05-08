@@ -1,5 +1,5 @@
-# LSD.coffee
-# SFZILABS 2019
+# TestAgent.coffee
+# Test Hivemine agents
 
 Flayer = require 'mineflayer'
 Future = require 'fluture'

@@ -14,7 +14,7 @@ Init = (Flayer) ->
 	Inject
 
 Inject = (Agent) ->
-	Navigate Agent
+	Navigate Agent # Inject Navigate
 
 	Agent.toBlock = (BlockOrPoint) -> # General function to resolve blocks or points
 		if 'object' == typeof BlockOrPoint
@@ -75,5 +75,17 @@ Inject = (Agent) ->
 				distance = closest
 				point = P
 		point
+
+	Agent.isStandableAir = (Input) -> # See if your feet could theoretically be at Input
+		SolidGround = not Agent.blockIsEmpty Agent.blockUnder Input
+		FeetSpace = Agent.blockIsEmpty Input
+		HeadSpace = Agent.blockIsEmpty Agent.blockAbove Input
+		SolidGround and FeetSpace and HeadSpace
+
+	Agent.isStandableGround = (Input) -> # See if you could theoretically stand on top of Input
+		Agent.isStandableAir Agent.blockAbove Input
+
+	Agent.setHivemine = (Hivemine) ->
+		Agent.Hivemine = Hivemine
 
 module.exports = Init
