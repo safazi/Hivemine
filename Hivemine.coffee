@@ -39,7 +39,7 @@ class Hivemine
 
 	addAgent: (Agent) ->
 		if -1 == @Agents.indexOf Agent
-			Agent.setHivemine @
+			Agent.hivemineSetHivemine @
 			@Agents.push Agent
 
 	findFreeAgent: ->
@@ -48,3 +48,14 @@ class Hivemine
 
 	setServer: (@ServerInformation) ->
 	setAgentCount: (@AgentCount = 1) ->
+
+	fetchRole: (Name) -> # Todo: Read ./roles/ and get the role
+	assignRole: (Agent, Role) -> Agent.hivemineAssignedRole Role
+	requestRoleChange: (Agent, NewRole) ->
+		return if Agent.Role == NewRole
+		if Agent.Role
+			# Quit that role
+			Agent.Role = undefined
+
+		if NewRole
+			@assignRole Agent, @fetchRole NewRole

@@ -55,8 +55,10 @@ Agent.changeRole 'fisherman'
 class Fisherman extends Role
     constructor: -> super 'fisherman' # Give the role a name
 
-    onEnter: => # Called when the bot joins the role
-        super() # Call before we do anything
+    onEnter: (Agent) => # Called when the bot joins the role
+        # Call super before we do anything, sets @Agent, @Hivemine, and Agent.Role
+        super Agent
+
         @Agent.withdrawFromLabeledChest('fishing_rod', '[fisher]').chain ->
             @Agent.walkToSign('[fishin spot]').chain ->
                 @startFishing()

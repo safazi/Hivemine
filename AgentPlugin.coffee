@@ -13,6 +13,8 @@ Init = (Flayer) ->
 	Navigate = Navigate Flayer
 	Inject
 
+# All methods starting with 'hivemine' are intended to be called by the Hivemine handler
+
 Inject = (Agent) ->
 	Navigate Agent # Inject Navigate
 
@@ -85,7 +87,13 @@ Inject = (Agent) ->
 	Agent.isStandableGround = (Input) -> # See if you could theoretically stand on top of Input
 		Agent.isStandableAir Agent.blockAbove Input
 
-	Agent.setHivemine = (Hivemine) ->
+	Agent.hivemineSetHivemine = (Hivemine) ->
 		Agent.Hivemine = Hivemine
+
+	Agent.changeRole = (NewRole) ->
+		if Agent.Hivemine
+			Agent.Hivemine.requestRoleChange Agent, NewRole
+
+	Agent.hivemineAssignedRole = (Role) -> Role.onEnter Agent
 
 module.exports = Init
