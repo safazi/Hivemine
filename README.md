@@ -3,11 +3,11 @@ _a server-dominating Minecraft bot, powered by Mineflayer_
 ***
 ### Bots should be able to:
 - Switch roles on the fly:
--- Lumberjack, Fisherman, Miner, etc.
+    - Lumberjack, Fisherman, Miner, etc.
 - Cooperate on a task
--- Building, Mining, Sorting, etc.
+    - Building, Mining, Sorting, etc.
 - Use server mechanics
--- Buying/selling items, Factions, etc.
+    - Buying/selling items, Factions, etc.
 
 ***
 ## Example API
