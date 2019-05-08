@@ -53,7 +53,10 @@ Agent.changeRole 'fisherman'
 ### Role concept
 ```coffee
 class Fisherman extends Role
+    constructor: -> super 'fisherman' # Give the role a name
+
     onEnter: => # Called when the bot joins the role
+        super() # Call before we do anything
         @Agent.withdrawFromLabeledChest('fishing_rod', '[fisher]').chain ->
             @Agent.walkToSign('[fishin spot]').chain ->
                 @startFishing()
@@ -68,6 +71,7 @@ class Fisherman extends Role
     
     onCollect: (Player, Entity) =>
         if Entity.kind == 'Drops' and Player === Agent.entity
+            @Agent.removeListener 'playerCollect', @onCollect
             @onCaughtFish()
             
     canFish: => Agent.hasItem 'fishing_rod'
@@ -76,7 +80,7 @@ class Fisherman extends Role
         return if @fishing
         if @canFish()
             @Agent.fish (Err) -> @fishing = false
-            @Agent.once 'playerCollect', onCollect
+            @Agent.on 'playerCollect', @onCollect
     
     onExit: => # Called when the bot has to leave its role
         # Stop fishing if we are
