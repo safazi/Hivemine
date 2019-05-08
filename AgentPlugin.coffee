@@ -5,6 +5,7 @@
 
 Mineflayer = undefined
 Navigate = require 'mineflayer-navigate'
+Fluture = require 'fluture'
 Vec3 = require 'vec3'
 
 Init = (Flayer) ->
@@ -46,7 +47,7 @@ Inject = (Agent) ->
 					return true if Input.hardness <= 1 # Avoid portal and water/lava blocks
 		false
 
-	Agent.getSurroundingBlocks = (Input, IncludeAir = true) ->
+	Agent.getSurroundingBlocks = (Input, IgnoreAir = true) -> # Get the blocks on all 6 sides.
 		Input = Agent.toBlock Input
 		if Input
 			Blocks = [	new Vec3  1, 0, 0
@@ -55,9 +56,24 @@ Inject = (Agent) ->
 			Result = []
 			for S in Sides
 				Block = Agent.blockAtOffset Input, Side
-				Result.push Block if Block and Block.type != 0 or IncludeAir
+				Result.push Block  if Block and Block.type != 0 or not IgnoreAir
 				Block = Agent.blockAtOffset Input, Side.scaled -1
-				Result.push Block if Block and Block.type != 0 or IncludeAir
+				Result.push Block if Block and Block.type != 0 or not IgnoreAir
 			Result
+
+	Agent.runTask = (Future) -> # Blindly fork a Future - good really only for testing
+		onError = (Data) -> console.error 'runTask error:',Data
+		onSucceed = (Data) -> console.error 'runTask done:',Data
+		Future.fork onError, onSucceed
+
+	Agent.closestPointOutOf = (Points = [], Position = Agent.entity.position) ->
+		closest = Number.MAX_SAFE_INTEGER
+		point = undefined
+		for P in Points
+			distance = Position.distanceTo P
+			if distance < closest
+				distance = closest
+				point = P
+		point
 
 module.exports = Init

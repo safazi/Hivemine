@@ -8,6 +8,17 @@ _a server-dominating Minecraft bot, powered by Mineflayer_
     - Building, Mining, Sorting, etc.
 - Use server mechanics
     - Buying/selling items, Factions, etc.
+***
+## Project structure
+
+### `./AgentPlugin.coffee`
+This is where all the Agent logic will go - task management, utilities, etc.
+
+### `./roles/`
+This is where all the different `role` types will be stored.
+
+### `./Hivemine.coffee`
+This is the brains behind the operation - it will create and manage bots.
 
 ***
 ## Example API
