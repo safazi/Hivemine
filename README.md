@@ -54,16 +54,18 @@ class Fisherman extends Role
         return if not @fishing
         @Agent.activateItem()
         @fishing = false
+    
+    onCollect: (Player, Entity) =>
+        if Entity.kind == 'Drops' and Player === Agent.entity
+            @onCaughtFish()
+            
+    canFish: => Agent.hasItem 'fishing_rod'
         
     startFishing: =>
         return if @fishing
         if @canFish()
             @Agent.fish (Err) -> @fishing = false
             @Agent.once 'playerCollect', onCollect
-        
-    onCollect: (Player, Entity) =>
-        if Entity.kind == 'Drops' and Player === Agent.entity
-            @onCaughtFish()
     
     onExit: => # Called when the bot has to leave its role
         # Stop fishing if we are
