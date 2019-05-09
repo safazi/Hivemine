@@ -1,9 +1,19 @@
 # Hivemine
 
-[![Join the chat at https://gitter.im/Hivemine/community](https://badges.gitter.im/Hivemine/community.svg)](https://gitter.im/Hivemine/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/Hivemine/community](https://badges.gitter.im/Hivemine/community.svg)](https://gitter.im/Hivemine/community)
 
 _a server-dominating Minecraft bot, powered by Mineflayer_
 ***
+
+### Bot goals:
+- Acquire resources
+    - Keep eachother alive
+    - Craft tools
+- Expand the Hive
+    - Expand building grid
+    - Spread banners
+- Carve out terrain below
+
 ### Bots should be able to:
 - Switch roles on the fly:
     - Lumberjack, Fisherman, Miner, etc.
@@ -11,6 +21,7 @@ _a server-dominating Minecraft bot, powered by Mineflayer_
     - Building, Mining, Sorting, etc.
 - Use server mechanics
     - Buying/selling items, Factions, etc.
+
 ***
 ## Project structure
 

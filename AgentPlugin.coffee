@@ -118,9 +118,9 @@ Inject = (Agent) ->
 			return Data.items[Input]
 		else if Type == 'string' # Name or ID
 			N = parseInt Input
-			if N != 0 and not N# Name
+			if N != 0 and not N # Name
 				return Data.itemsByName[Input]
-			else
+			else # ID
 				return Data.items[N]
 
 	Agent.easyEquip = (ResolvesToItem, dest = "hand", cb) ->
