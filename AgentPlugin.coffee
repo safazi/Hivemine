@@ -50,18 +50,16 @@ Inject = (Agent) ->
 		false
 
 	Agent.getSurroundingBlocks = (Input, IgnoreAir = true) -> # Get the blocks on all 6 sides.
-		Input = Agent.toBlock Input
-		if Input
-			Blocks = [	new Vec3  1, 0, 0
-						new Vec3  0, 0, 1
-						new Vec3  0, 1, 0 ]
-			Result = []
-			for S in Sides
-				Block = Agent.blockAtOffset Input, Side
-				Result.push Block  if Block and Block.type != 0 or not IgnoreAir
-				Block = Agent.blockAtOffset Input, Side.scaled -1
-				Result.push Block if Block and Block.type != 0 or not IgnoreAir
-			Result
+		Blocks = [	new Vec3  1, 0, 0
+					new Vec3  0, 0, 1
+					new Vec3  0, 1, 0 ]
+		Result = []
+		for S in Sides
+			Block = Agent.blockAtOffset Input, Side
+			Result.push Block  if Block and Block.type != 0 or not IgnoreAir
+			Block = Agent.blockAtOffset Input, Side.scaled -1
+			Result.push Block if Block and Block.type != 0 or not IgnoreAir
+		Result
 
 	Agent.runTask = (Future) -> # Blindly fork a Future - good really only for testing
 		onError = (Data) -> console.error 'runTask error:',Data
@@ -87,13 +85,23 @@ Inject = (Agent) ->
 	Agent.isStandableGround = (Input) -> # See if you could theoretically stand on top of Input
 		Agent.isStandableAir Agent.blockAbove Input
 
-	Agent.hivemineSetHivemine = (Hivemine) ->
-		Agent.Hivemine = Hivemine
+	Agent.findAdjacentBlockAndDirection = (Input) ->
+		Input = Agent.toBlock Input
+		Adjacent = Agent.getSurroundingBlocks Input
+		if Adjacent.length
+			return
+				block: Adjacent[0]
+				direction: Input.position.minus Adjacent[0].position
 
-	Agent.changeRole = (NewRole) ->
-		if Agent.Hivemine
-			Agent.Hivemine.requestRoleChange Agent, NewRole
+	Agent.easyPlace = (Input, cb) ->
+		Result = Agent.findAdjacentBlockAndDirection Input
+		if Result
+			Agent.placeBlock Result.block, Result.direction, cb
+			return true
 
+	Agent.changeRole = (NewRole) -> Agent.Hivemine.requestRoleChange Agent, NewRole if Agent.Hivemine
+	
 	Agent.hivemineAssignedRole = (Role) -> Role.onEnter Agent
+	Agent.hivemineSetHivemine = (Hivemine) -> Agent.Hivemine = Hivemine
 
 module.exports = Init

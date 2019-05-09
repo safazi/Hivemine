@@ -16,7 +16,7 @@ EventEmitter = (require 'events').EventEmitter
 class ServerInformation
 	constructor: (@Host, @Port = 25565, @Name) ->
 		Parts = @Host.split ':'
-		if Parts.length > 1
+		if Parts.length
 			@Port = parseInt Parts[1]
 			@Host = Parts[0]
 			@Name = @Host if not @Name
@@ -57,5 +57,5 @@ class Hivemine
 			# Quit that role
 			Agent.Role = undefined
 
-		if NewRole
-			@assignRole Agent, @fetchRole NewRole
+		NewRole = @fetchRole NewRole
+		@assignRole Agent, NewRole if NewRole
