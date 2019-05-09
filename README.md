@@ -1,4 +1,7 @@
 # Hivemine
+
+[![Join the chat at https://gitter.im/Hivemine/community](https://badges.gitter.im/Hivemine/community.svg)](https://gitter.im/Hivemine/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 _a server-dominating Minecraft bot, powered by Mineflayer_
 ***
 ### Bots should be able to:
