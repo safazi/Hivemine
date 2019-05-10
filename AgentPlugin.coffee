@@ -123,6 +123,19 @@ Inject = (Agent) ->
 			else # ID
 				return Data.items[N]
 
+	Agent.chestBehindSign = (Input) ->
+		Input = Agent.toBlock Input
+		if Input and Input.metadata
+			Dir = {
+				2: (new Vec3  0, 0, 1)
+				3: (new Vec3  0, 0,-1)
+				4: (new Vec3  1, 0, 0)
+				5: (new Vec3 -1, 0, 0)
+			}
+			A = Dir[Input.metadata]
+			if A
+				return Agent.blockAtOffset Input, Dir
+
 	Agent.easyEquip = (ResolvesToItem, dest = "hand", cb) ->
 		Item = Agent.resolveItem ResolvesToItem
 		Agent.equip Item.type, dest, cb if Item
