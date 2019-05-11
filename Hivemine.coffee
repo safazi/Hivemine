@@ -11,27 +11,20 @@
 
 ###
 
-EventEmitter = (require 'events').EventEmitter
+EventEmitter = require 'events'
 
 class ServerInformation
 	constructor: (@Host, @Port = 25565, @Name) ->
 		Parts = @Host.split ':'
 		if Parts.length
-			@Port = parseInt Parts[1]
-			@Host = Parts[0]
-			@Name = @Host if not @Name
+			@Port = parseInt Parts[1]	# Server port
+			@Host = Parts[0]			# Server host
+			@Name = @Host if not @Name 	# Name for flatfile DB
 
-class Hivemine
+class Hivemine extends EventEmitter # thanks wvffle!
 	constructor: ->
 		@Event = new EventEmitter()
 		@Agents = []
-		
-	# wrap @Event (incomplete)
-	on:(a,b)->@Event.on a,b
-	once:(a,b)->@Event.once a,b
-	emit:(...a)->@Event.emit.apply @Event, a
-	removeListener:(a,b)->@Event.removeListener a,b
-	removeAllListeners:(a)->@Event.removeAllListeners a
 
 	inquire: (Key) ->
 		# Query the flatfile for a certain key
@@ -59,3 +52,6 @@ class Hivemine
 
 		NewRole = @fetchRole NewRole
 		@assignRole Agent, NewRole if NewRole
+
+###
+	requestItem
