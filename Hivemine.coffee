@@ -32,7 +32,7 @@ class Hivemine extends EventEmitter # thanks wvffle!
 
 	addAgent: (Agent) ->
 		if -1 == @Agents.indexOf Agent
-			Agent.hivemineSetHivemine @
+			Agent.hivemineInit @
 			@Agents.push Agent
 
 	findFreeAgent: ->
