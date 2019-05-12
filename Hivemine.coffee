@@ -23,7 +23,7 @@ class ServerInformation
 
 class Hivemine extends EventEmitter # thanks wvffle!
 	constructor: ->
-		@Event = new EventEmitter()
+		super()
 		@Agents = []
 
 	inquire: (Key) ->
@@ -36,8 +36,9 @@ class Hivemine extends EventEmitter # thanks wvffle!
 			@Agents.push Agent
 
 	findFreeAgent: ->
+		# TODO: take role into consideration
 		for Agent in @Agents
-			return Agent if Agent.free
+			return Agent if Agent.Free
 
 	setServer: (@ServerInformation) ->
 	setAgentCount: (@AgentCount = 1) ->
@@ -55,3 +56,4 @@ class Hivemine extends EventEmitter # thanks wvffle!
 
 ###
 	requestItem
+###

@@ -9,12 +9,11 @@ module.exports = (Role) -> # 'Role' is the base class
             # Call super before we do anything, sets @Agent, @Hivemine, and Agent.Role
             super Agent
 
-            @Agent.withdrawFromLabeledChest('fishing_rod', '[fisher]').chain ->
+            @Agent.begin @Agent.withdrawFromLabeledChest('fishing_rod', '[fisher]').chain ->
                 @Agent.walkToSign('[fishin spot]').chain ->
                     @startFishing()
 
-        onCaughtFish: => # Could report it to Hivemine, deposit it, eat it, etc.
-            @startFishing()
+        onCaughtFish: => @startFishing() # Could report it to Hivemine, deposit it, eat it, etc.
             
         stopFishing: =>
             return if not @fishing
@@ -31,6 +30,7 @@ module.exports = (Role) -> # 'Role' is the base class
         startFishing: =>
             return if @fishing
             if @canFish()
+                #TODO: easyEquip call
                 @Agent.fish (Err) -> @fishing = false
                 @Agent.on 'playerCollect', @onCollect
         
