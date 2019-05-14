@@ -286,6 +286,7 @@ Inject = (Agent) ->
 						Window.withdraw Item.type, undefined, undefined, (err) ->
 							return Reject 'chainableChestWithdrawalItem.err{' + err + '}' if err
 							return Resolve Item
+						return
 				Reject 'chainableChestWithdrawalItem.none'
 
 	# withdraw a single item from a chest
@@ -309,6 +310,10 @@ Inject = (Agent) ->
 					).chain (Window) ->
 						Agent.chainableChestWithdrawalItem(Window, ResolvesToItem)
 					walk.fork Reject, Resolve
+
+	Agent.depositIntoLabeledChest = (ResolvesToItem, ChestLabel) -> # sync findLabeledChest call, navTo call, deposit call
+		new Future (Reject, Resolve) ->
+			Reject 'not implemented'
 
 	Agent.walkToSign = (Text) -> # findSign call, navTo call
 		new Future (Reject, Resolve) ->

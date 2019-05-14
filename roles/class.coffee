@@ -14,8 +14,8 @@ class Role
 
 	# todo: maybe provide hivemine reporting functions in the base class
 
-	onExit: =>
+	onExit: (CB) =>
 		@Active = false
-		# TODO: tell Hivemine we're free from our role shackles?
+		CB() if CB
 
 module.exports = Role

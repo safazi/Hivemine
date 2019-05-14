@@ -34,9 +34,9 @@ module.exports = (Role) -> # 'Role' is the base class
                 @Agent.fish (Err) -> @fishing = false
                 @Agent.on 'playerCollect', @onCollect
         
-        onExit: => # Called when the bot has to leave its role
+        onExit: (CB) => # Called when the bot has to leave its role
             # Stop fishing if we are
             @stopFishing()
             # Deposit items
             @Agent.depositIntoLabeledChest('*', '[fisher]').chain -> # '*' wildcard to deposit all items
-                super() # Call when done
+                super CB # Call when done

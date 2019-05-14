@@ -13,6 +13,11 @@
 
 EventEmitter = require 'events'
 
+BaseRole = require './roles/class'
+
+fs = require 'fs'
+path = require 'path'
+
 class ServerInformation
 	constructor: (@Host, @Port = 25565, @Name) ->
 		Parts = @Host.split ':'
@@ -25,34 +30,57 @@ class Hivemine extends EventEmitter # thanks wvffle!
 	constructor: ->
 		super()
 		@Agents = []
+		@Roles = {}
+		@readRoles()
 
-	inquire: (Key) ->
+	inquire: (Key) =>
 		# Query the flatfile for a certain key
 		# Would return a forked future or something.
 
-	addAgent: (Agent) ->
+	addAgent: (Agent) =>
 		if -1 == @Agents.indexOf Agent
 			Agent.hivemineInit @
 			@Agents.push Agent
 
-	findFreeAgent: ->
+	findFreeAgent: =>
 		# TODO: take role into consideration
 		for Agent in @Agents
 			return Agent if Agent.Free
 
-	setServer: (@ServerInformation) ->
-	setAgentCount: (@AgentCount = 1) ->
+	setServer: (@ServerInformation) =>
+	setAgentCount: (@AgentCount = 1) =>
 
-	fetchRole: (Name) -> # Todo: Read ./roles/ and get the role
-	assignRole: (Agent, Role) -> Agent.hivemineAssignedRole Role
-	requestRoleChange: (Agent, NewRole) ->
+	loadRole: (C) =>
+		instance = new C()
+		if instance.Name
+			@Roles[instance.Name] = C
+			return true
+		false
+
+	readRoles: =>
+		roles = path.join __dirname, 'roles'
+		fs.readdir roles, (err, files) ->
+			return err if err
+			for f in files
+				success = @loadRole require './roles/' + f
+				if not success
+					console.log 'Failed to load role:',f 
+
+	fetchRole: (Name) => # Todo: Read ./roles/ and get the role
+		Role = @Roles[Name]
+		new Role() if Role
+
+	assignRole: (Agent, Role) => Agent.hivemineAssignedRole Role
+	requestRoleChange: (Agent, NewRole) =>
 		return if Agent.Role == NewRole
 		if Agent.Role
 			# Quit that role
-			Agent.Role = undefined
-
-		NewRole = @fetchRole NewRole
-		@assignRole Agent, NewRole if NewRole
+			Agent.Role.onExit ->
+				Agent.Role = undefined
+				@requestRoleChange Agent, NewRole
+		else
+			NewRole = @fetchRole NewRole
+			@assignRole Agent, NewRole if NewRole
 
 ###
 	requestItem
