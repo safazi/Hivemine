@@ -89,7 +89,7 @@ Inject = (Agent) ->
 		SolidGround and FeetSpace and HeadSpace
 
 	# See if you could theoretically stand on top of Input
-	Agent.isStandableGround = (Input) -> Agent.isStandableAir Agent.blockAbove
+	Agent.isStandableGround = (Input) -> Agent.isStandableAir Agent.blockAbove Input
 
 	# Go down until we can stand
 	Agent.findGround = (Input) ->
