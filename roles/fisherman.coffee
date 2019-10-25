@@ -25,7 +25,7 @@ module.exports = (Role) -> # 'Role' is the base class
                 @Agent.removeListener 'playerCollect', @onCollect
                 @onCaughtFish()
                 
-        canFish: => Agent.hasItem 'fishing_rod'
+        canFish: => @Agent.hasItem 'fishing_rod'
             
         startFishing: =>
             return if @fishing
