@@ -223,7 +223,7 @@ Inject = (Agent) ->
 				else
 					return Agent.closestChestToBlock Sign, Range
 
-	Agent.navTo = (Position, Retry) ->
+	Agent.navTo = (Position, Retry = 0) ->
 		new Future (Reject, Resolve) ->
 			return Reject 'navTo.args' if not Position
 			Result = Agent.navigate.findPathSync Position,
@@ -240,12 +240,12 @@ Inject = (Agent) ->
 						else # TODO: deal with interrupted
 							Reject status
 				when 'tooFar'
-					if Retry
+					if Retry > 0
 						Walking = true
 						Agent.navigate.walk Path, (status) ->
 							Walking = false
 							if status == 'arrived'
-								nextNav = Agent.navTo Position, Retry
+								nextNav = Agent.navTo Position, Retry - 1
 								# Start the next navTo
 								nextNav.fork Reject, Resolve
 							else
