@@ -58,10 +58,11 @@ class Hivemine extends EventEmitter # thanks wvffle!
 		false
 
 	readRoles: =>
-		roles = path.join __dirname, 'roles'
-		fs.readdir roles, (err, files) ->
+		# roles = path.join __dirname, 'roles'
+		fs.readdir './roles/', (err, files) ->
 			return err if err
 			for f in files
+				continue if f == 'class.coffee'
 				success = @loadRole require './roles/' + f
 				if not success
 					console.error 'Failed to load role:',f 
