@@ -13,7 +13,14 @@ module.exports = (Role) -> # 'Role' is the base class
                 @Agent.walkToSign('[fishin spot]').chain ->
                     @startFishing()
 
-        onCaughtFish: => @startFishing() # Could report it to Hivemine, deposit it, eat it, etc.
+        onCaughtFish: => # Could report it to Hivemine, deposit it, eat it, etc.
+			if @shouldContinueFishing()
+				@startFishing()
+
+		shouldContinueFishing: =>
+			# TODO: Check we have inventory space
+			# TODO: Check if we should eat
+			true
             
         stopFishing: =>
             return if not @fishing
@@ -31,7 +38,7 @@ module.exports = (Role) -> # 'Role' is the base class
             return if @fishing
             if @canFish()
                 #TODO: easyEquip call
-                @Agent.fish (Err) -> @fishing = false
+                @Agent.fish (Err) -> @fishing = false # do I need to bind this?
                 @Agent.on 'playerCollect', @onCollect
         
         onExit: (CB) => # Called when the bot has to leave its role

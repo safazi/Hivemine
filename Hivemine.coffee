@@ -64,7 +64,7 @@ class Hivemine extends EventEmitter # thanks wvffle!
 			for f in files
 				success = @loadRole require './roles/' + f
 				if not success
-					console.log 'Failed to load role:',f 
+					console.error 'Failed to load role:',f 
 
 	fetchRole: (Name) => # Todo: Read ./roles/ and get the role
 		Role = @Roles[Name]
