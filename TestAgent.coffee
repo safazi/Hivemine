@@ -7,6 +7,10 @@ AgentPlugin = (require './AgentPlugin')(Flayer)
 
 Account = require './account.json'
 
+fs = require 'fs'
+
+###
+
 Agent = Flayer.createBot {
 	version: '1.12.2'
 	host: Account.host
@@ -14,15 +18,31 @@ Agent = Flayer.createBot {
 	password: Account.password
 }
 
+###
+Agent = Flayer.createBot {
+	host: 'localhost' 
+	username: 'hivemine_agent'
+}
+
 AgentPlugin Agent
 
-Agent.once 'login', -> console.log 'Agent login'
+Agent.once 'login', ->
+	console.log 'Agent logged into server running',Agent.version
 
 Agent.once "health", -> # fix for the mineflayer bug
 	if Agent.health > 0 and Agent.isAlive
+		console.log 'health', Agent.health, Agent.isAlive
 		Agent.emit "spawn"
 
 err=(t)->console.error 'error:',t
 
-Agent.once 'spawn', -> Agent.chat 'Agent active'
-Agent.on 'spawn', -> Agent.chat 'Agent respawned'
+Hivemine = require './Hivemine.coffee'
+
+Agent.once 'spawn', ->
+
+	console.log 'Agent spawned'
+	
+	BigSequence = Agent.chainable.say('Starting big task')
+		.and Agent.chainable.say('done')
+
+	Agent.begin BigSequence

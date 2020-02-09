@@ -7,7 +7,9 @@ Mineflayer = undefined
 Data = undefined
 
 Navigate = require 'mineflayer-navigate'
-Fluture = require 'fluture'
+Future = require 'fluture'
+Fluenture = require 'fluenture'
+Fluent = Fluenture.fluent
 Vec3 = require 'vec3'
 
 Init = (Flayer) ->
@@ -26,44 +28,38 @@ Inject = (Agent) ->
 		Agent.once 'inject_allowed', ->
 			Data = (require 'minecraft-data') Agent.version
 
-
-	Agent.toBlock = (BlockOrPoint) -> # General function to resolve blocks or points
+	Agent.toBlock = (BlockOrPoint) ->
 		if 'object' == typeof BlockOrPoint
-			if BlockOrPoint.hasOwnProperty 'type' # It's a block
+			if BlockOrPoint.hasOwnProperty 'type'
 				return BlockOrPoint
-			else if BlockOrPoint.hasOwnProperty 'x' # It's a point
+			else if BlockOrPoint.hasOwnProperty 'x'
 				return Agent.blockAt BlockOrPoint
 
 	Agent.blockAtOffset = (BlockOrPoint, xOrVec3=0, y=0, z=0) ->
-		return if 'object' != typeof BlockOrPoint
 		Block = Agent.toBlock BlockOrPoint
 		if Block
-			if 'object' == typeof xOrVec3 # Vec3 instance
+			if 'object' == typeof xOrVec3
 				Agent.blockAt Block.position.plus xOrVec3
 			else
 				Agent.blockAt Block.position.offset xOrVec3, y, z
 
-	Agent.blockUnder = (Input) ->
-		return Agent.blockAtOffset Input, 0, -1, 0
+	Agent.blockUnder = (Input) -> Agent.blockAtOffset Input, 0, -1, 0
 
-	Agent.blockAbove = (Input) ->
-		return Agent.blockAtOffset Input, 0, 1, 0
+	Agent.blockAbove = (Input) -> Agent.blockAtOffset Input, 0, 1, 0
 
 	Agent.blockIsEmpty = (Input) ->
 		Input = Agent.toBlock Input
-		return if 'object' != typeof Input
-		if Input.hasOwnProperty 'type'
+		if Input
 			if Input.boundingBox == 'empty'
 				if Input.hardness != undefined
 					return true if Input.hardness <= 1 # Avoid portal and water/lava blocks
-		false
 
 	Agent.getSurroundingBlocks = (Input, IgnoreAir = true) -> # Get the blocks on all 6 sides.
-		Blocks = [	new Vec3  1, 0, 0
+		Sides = [	new Vec3  1, 0, 0
 					new Vec3  0, 0, 1
 					new Vec3  0, 1, 0 ]
 		Result = []
-		for S in Sides
+		for Side in Sides
 			Block = Agent.blockAtOffset Input, Side
 			Result.push Block  if Block and Block.type != 0 or not IgnoreAir
 			Block = Agent.blockAtOffset Input, Side.scaled -1
@@ -83,13 +79,14 @@ Inject = (Agent) ->
 	# See if your feet could theoretically be at Input
 	Agent.isStandableAir = (Input) ->
 		SolidGround = not Agent.blockIsEmpty Agent.blockUnder Input
-		SolidGround = Agent.blockUnder(Input).name != 'chest' if SolidGround
+		CanStand = Agent.blockUnder(Input).boundingBox == 'block' # X.name != 'chest' if SolidGround
+		DontStandOnChests = Agent.blockUnder(Input).name != 'chest'
 		FeetSpace = Agent.blockIsEmpty Input
 		HeadSpace = Agent.blockIsEmpty Agent.blockAbove Input
-		SolidGround and FeetSpace and HeadSpace
+		SolidGround and FeetSpace and HeadSpace and CanStand and DontStandOnChests
 
 	# See if you could theoretically stand on top of Input
-	Agent.isStandableGround = (Input) -> Agent.isStandableAir Agent.blockAbove
+	Agent.isStandableGround = (Input) -> Agent.isStandableAir Agent.blockAbove Input
 
 	# Go down until we can stand
 	Agent.findGround = (Input) ->
@@ -98,7 +95,7 @@ Inject = (Agent) ->
 		while not Agent.isStandableAir Input
 			Iter++
 			Input = Agent.blockUnder Input
-			return if not Block or Block.position.y <= 0 or Iter > 10
+			return if not Input or Input.position.y <= 0 or Iter > 10
 		Input
 
 	Agent.findStandableGroundPosition = (Input) ->
@@ -145,29 +142,34 @@ Inject = (Agent) ->
 		Result = Agent.findAdjacentBlockAndDirection Input
 		if Result
 			Agent.placeBlock Result.block, Result.direction, cb
-			return true
-		else if cb
-			cb 'none'
+			return cb true
+		return cb false
 
 	# turn input into an item
-	Agent.resolveItem = (Input, Source) ->
+	Agent.resolveItem = (Input) ->
 		Type = typeof Input
 		if Type == 'object' # Could already be an Item
 			return Input if Input.hasOwnProperty 'type'
 		else if Type == 'number' # ID
 			return Data.items[Input]
 		else if Type == 'string' # Name or ID
-			N = parseInt Input
-			if N != 0 and not N # Name
+			N = new Number Input
+			if Number.isInteger(N)
+				return Agent.resolveItem N
+			else
 				return Data.itemsByName[Input]
-			else # ID
-				return Data.items[N]
 
+	Agent.hasItem = (Input) ->
+		Item = Agent.resolveItem Input
+		if Item
+			for I in Agent.inventory.items()
+				return true if I.name == Item.name
 	# equip an item, uses resolveItem
-	Agent.easyEquip = (ResolvesToItem, dest = "hand", cb) ->
+	Agent.easyEquip = (ResolvesToItem, dest = 'hand', cb) ->
 		# Note: may not actually equip anything, use callback!
 		Item = Agent.resolveItem ResolvesToItem
-		Agent.equip Item.type, dest, cb if Item
+		if Item
+			Agent.equip Item.id, dest, cb 
 
 	# find the block behind a sign
 	Agent.blockBehindSign = (Input) ->
@@ -179,10 +181,8 @@ Inject = (Agent) ->
 				4: (new Vec3  1, 0, 0)
 				5: (new Vec3 -1, 0, 0)
 			}
-			A = Dir[Input.metadata]
-			if A
-				return Agent.blockAtOffset Input, Dir
-
+			return Agent.blockAtOffset Input, Dir if Dir[Input.metadata]
+	
 	# find a sign with specific first line of text
 	Agent.findSign = (Text, Dist = 64) ->
 		# TODO: consider caching signs
@@ -202,12 +202,12 @@ Inject = (Agent) ->
 
 	# find the closest chest to a position
 	Agent.closestChestTo = (Position, Range = 16, Trapped = false, Ender = false) ->
-			isMatch = (Block) -> Block.type == 54 or (Block.type == 130 and Ender) or (Block.type == 146 and Trapped)
+		isMatch = (Block) -> Block.type == 54 or (Block.type == 130 and Ender) or (Block.type == 146 and Trapped)
 
-			Agent.findBlock
-				point: Position or Agent.entity.position,
-				matching: isMatch,
-				maxDistance: Range,
+		Agent.findBlock
+			point: Position or Agent.entity.position,
+			matching: isMatch,
+			maxDistance: Range,
 
 	# find the closest chest to a block
 	Agent.closestChestToBlock = (Block, R, T, E) -> Agent.closestChestTo Block.position, R, T, E
@@ -215,7 +215,7 @@ Inject = (Agent) ->
 	# find a chest behind a sign
 	Agent.findLabeledChest = (Label, Range = 64) ->
 		if Label
-			Sign = f.findSign Label, Range
+			Sign = Agent.findSign Label, Range
 			if Sign
 				C = Agent.blockBehindSign Sign
 				if C
@@ -224,8 +224,8 @@ Inject = (Agent) ->
 					return Agent.closestChestToBlock Sign, Range
 
 	Agent.navTo = (Position, Retry = 0) ->
-		new Future (Reject, Resolve) ->
-			return Reject 'navTo.args' if not Position
+		Fluent new Future (Reject, Resolve) ->
+			return Reject 'navTo: args' if not Position
 			Result = Agent.navigate.findPathSync Position,
 				tooFarThreshold: 150
 			Path = Result.path
@@ -239,6 +239,7 @@ Inject = (Agent) ->
 							Resolve status
 						else # TODO: deal with interrupted
 							Reject status
+					
 				when 'tooFar'
 					if Retry > 0
 						Walking = true
@@ -251,12 +252,11 @@ Inject = (Agent) ->
 							else
 								Reject status
 					else
-						Reject 'navTo.far'
+						Reject 'navTo: far'
 				else
-					Reject 'navTo.noPath'
+					Reject 'navTo: noPath'
 
-			->
-				Agent.navigate.stop() if Walking
+			-> Agent.navigate.stop() if Walking
 
 	Agent.canOpenChest = (Chest) ->
 		if Chest
@@ -264,75 +264,114 @@ Inject = (Agent) ->
 			Open = Agent.entity.position.distanceTo(Chest.position) < 4.5 
 			return See and Open
 
-	# cant use the name openChest
-	Agent.chainableOpenChest = (Chest) ->
-		new Future (Reject, Resolve) ->
-			Reject 'chainableOpenChest.args' if not Chest
-			Window = Agent.openChest Chest
-			if Window != undefined
-				Window.once 'open', ->
-					Resolve Window
-			else
-				Reject 'chainableOpenChest.window'
+	Agent.chainable = {}
+	Agent.chainable.openChest = (Chest) ->			# Assume we can open it, do not bother checking.
+		Fluent new Future (Reject, Resolve) ->
+			if Chest
+				Open = Agent.openChest Chest
+				if Open
+					Open.once 'open', -> Resolve OpenChest
+				else Reject 'openChest: no window'
+			else Reject 'openChest: bad argument #1'
+			-> 
+
+	Agent.chainable.say = (Message) ->
+		Fluent new Future (Reject, Resolve) ->
+			Agent.chat Message
+			setTimeout Resolve, 250
+	
+	Agent.chainable.withdrawItem = (Open, Item, Amount = 1, Metadata) ->
+
+	Agent.chainable.openLabeledChest = (Label) ->
+		# Walk
+
 
 	# cant use the name withdraw
-	Agent.chainableChestWithdrawalItem = (Window, ResolvesToItem) -> 
-		new Future (Reject, Resolve) ->
-			I = Window.items()
+	Agent.chainableChestWithdrawalItem = (OpenChest, ResolvesToItem, Amount = 1, Metadata) -> 
+		Fluent new Future (Reject, Resolve) ->
+			I = OpenChest.items()
 			Target = Agent.resolveItem ResolvesToItem
+			found = false
 			if Target
 				for Item in I
 					if Item.name == Target.name
-						Window.withdraw Item.type, undefined, undefined, (err) ->
-							return Reject 'chainableChestWithdrawalItem.err{' + err + '}' if err
-							return Resolve Item
-						return
-				Reject 'chainableChestWithdrawalItem.none'
+						OpenChest.withdraw Item.type, Metadata, Amount, (err) ->
+							if err
+								Reject 'chainableChestWithdrawalItem: '+err if err
+							else
+								setTimeout (-> Resolve Item), 175
+						found = true
+						break
+			Reject 'chainableChestWithdrawalItem: item not found' if not found
+			->
+			
 
 	# withdraw a single item from a chest
 	# walk to it if needed
 	Agent.withdrawFromLabeledChest = (ResolvesToItem, ChestLabel) -> # sync findLabeledChest call, navTo call, withdraw call
 		# TODO: support multiple items
-		new Future (Reject, Resolve) ->
-			return Reject 'withdrawFromLabeledChest.args' if not ChestLabel and ResolvesToItem != undefined
+		Fluent new Future (Reject, Resolve) ->
+			if not (ChestLabel and ResolvesToItem)
+				Reject 'withdrawFromLabeledChest.args' 
+				return -> 
 			Chest = Agent.findLabeledChest ChestLabel
 			if Agent.canOpenChest Chest
-				# No need to navigate
-				openAndWithdraw = Agent.chainableOpenChest(Chest).chain (Window) ->
-					Agent.chainableChestWithdrawalItem(Window, ResolvesToItem)
-				openAndWithdraw.fork Reject, Resolve
-			else
+				openAndWithdraw = Agent.chainableOpenChest(Chest).chain (OpenChest) ->
+					# console.log OpenChest
+					Agent.chainableChestWithdrawalItem(OpenChest, ResolvesToItem).map -> OpenChest.close()
+						###new Future (_, R) ->
+							Resolve OpenChest.close()
+							-> ###
+						
+				return openAndWithdraw.fork Reject, Resolve
+			else if Chest
 				Pos = Agent.findStandableGroundPosition Chest
 				if Pos
 					# navigate
-					walk = Agent.navTo(Pos).chain(->
+					walk = Agent.navTo(Pos).chain -> Agent.withdrawFromLabeledChest ResolvesToItem, ChestLabel
+					###walk = Agent.navTo(Pos).chain(->
 						Agent.chainableOpenChest(Chest)
 					).chain (Window) ->
-						Agent.chainableChestWithdrawalItem(Window, ResolvesToItem)
-					walk.fork Reject, Resolve
+						Agent.chainableChestWithdrawalItem(Window, ResolvesToItem)####
+					return walk.fork Reject, Resolve
+				Reject 'withdrawFromLabeledChest: no standable ground'
+				return ->
+			else
+				Reject 'withdrawFromLabeledChest: cant find chest'
+				return ->
+
 
 	Agent.depositIntoLabeledChest = (ResolvesToItem, ChestLabel) -> # sync findLabeledChest call, navTo call, deposit call
-		new Future (Reject, Resolve) ->
+		Fluent new Future (Reject, Resolve) ->
 			Reject 'not implemented'
 
 	Agent.walkToSign = (Text) -> # findSign call, navTo call
-		new Future (Reject, Resolve) ->
+		Fluent new Future (Reject, Resolve) ->
 			if Text
 				Sign = Agent.findSign Text
 				if Sign
 					Ground = Agent.findGround Sign
-					return Agent.navTo(Ground.position).fork Reject, Resolve if Ground
-				return Reject 'walkToSign.sign'
+					if Ground
+						return Agent.navTo(Ground.position).fork Reject, Resolve
+					else
+						Reject 'walkToSign.ground'
+						return ->
+				Reject 'walkToSign.sign'
+				return -> 
 			Reject 'walkToSign.args'
+			return ->
 
-	Agent.begin = (Future) ->
+	Agent.begin = (F) ->
 		if Agent.Free
+			console.log 'go time'
+			Agent.Free = false
 			taskCompleted = ->
 				Agent.Free = true
 			taskFailed = (code) ->
 				# TODO: tell Hivemine
 				Agent.Free = true
-			Future.fork taskFailed, taskCompleted
+			console.log 'forking rn'
+			return F.fork taskFailed, taskCompleted
 		# TODO: Queue up tasks?
 
 	Agent.changeRole = (NewRole) -> Agent.Hivemine.requestRoleChange Agent, NewRole if Agent.Hivemine
@@ -341,5 +380,6 @@ Inject = (Agent) ->
 	Agent.hivemineInit = (Hivemine) ->
 		Agent.Hivemine = Hivemine
 		Agent.Free = true
+		console.log 'free',Agent.Free
 
 module.exports = Init

@@ -59,7 +59,7 @@ class Hivemine extends EventEmitter # thanks wvffle!
 
 	readRoles: =>
 		# roles = path.join __dirname, 'roles'
-		fs.readdir './roles/', (err, files) ->
+		fs.readdir './roles/', (err, files) =>
 			return err if err
 			for f in files
 				continue if f == 'class.coffee'
@@ -86,3 +86,5 @@ class Hivemine extends EventEmitter # thanks wvffle!
 ###
 	requestItem
 ###
+
+module.exports = new Hivemine()

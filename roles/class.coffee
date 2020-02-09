@@ -6,7 +6,8 @@
 class Role
 	constructor: (@Name = 'unknown') ->
 
-	onEnter: (@Agent) =>
+	onEnter: (A) ->
+		@Agent = A
 		if @Agent
 			@Hivemine = @Agent.Hivemine
 			@Agent.Role = @
@@ -14,7 +15,7 @@ class Role
 
 	# todo: maybe provide hivemine reporting functions in the base class
 
-	onExit: (CB) =>
+	onExit: (CB) ->
 		@Active = false
 		CB() if CB
 
