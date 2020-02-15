@@ -35,6 +35,8 @@ Inject = (Agent) ->
 			else if BlockOrPoint.hasOwnProperty 'x'
 				return Agent.blockAt BlockOrPoint
 
+	Agent.toPosition = (BlockOrPoint) -> Agent.toBlock(BlockOrPoint).position
+
 	Agent.blockAtOffset = (BlockOrPoint, xOrVec3=0, y=0, z=0) ->
 		Block = Agent.toBlock BlockOrPoint
 		if Block
@@ -141,29 +143,52 @@ Inject = (Agent) ->
 	Agent.easyPlace = (Input, cb) ->
 		Result = Agent.findAdjacentBlockAndDirection Input
 		if Result
-			Agent.placeBlock Result.block, Result.direction, cb
-			return cb true
-		return cb false
+			return Agent.placeBlock Result.block, Result.direction, (err) ->
+				if err
+					cb false
+				else cb true 
+		cb false
 
 	# turn input into an item
 	Agent.resolveItem = (Input) ->
 		Type = typeof Input
 		if Type == 'object' # Could already be an Item
-			return Input if Input.hasOwnProperty 'type'
+			if Input.hasOwnProperty 'id'
+				return Input
+			if Input.hasOwnProperty 'type'
+				return Input
 		else if Type == 'number' # ID
-			return Data.items[Input]
+			X = Data.blocks[Input]
+			return X if X 
+			X = Data.items[Input]
+			return X
 		else if Type == 'string' # Name or ID
 			N = new Number Input
 			if Number.isInteger(N)
 				return Agent.resolveItem N
 			else
-				return Data.itemsByName[Input]
+				X = Data.itemsByName[Input]
+				return X if X
+				X = Data.blocksByName[Input]
+				return X
 
-	Agent.hasItem = (Input) ->
+	Agent.hasItem = (Input, Quantity = 1) ->
 		Item = Agent.resolveItem Input
 		if Item
 			for I in Agent.inventory.items()
-				return true if I.name == Item.name
+				if I.name == Item.name
+					Quantity -= I.count
+			return Quantity <= 0
+
+	Agent.countItems = (Input) ->
+		Item = Agent.resolveItem Input
+		if Item
+			count = 0
+			for I in Agent.inventory.items()
+				if I.name == Item.name
+					count += I.count
+			return count
+		return -1
 	# equip an item, uses resolveItem
 	Agent.easyEquip = (ResolvesToItem, dest = 'hand', cb) ->
 		# Note: may not actually equip anything, use callback!
@@ -180,8 +205,8 @@ Inject = (Agent) ->
 				3: (new Vec3  0, 0,-1)
 				4: (new Vec3  1, 0, 0)
 				5: (new Vec3 -1, 0, 0)
-			}
-			return Agent.blockAtOffset Input, Dir if Dir[Input.metadata]
+			}[Input.metadata]
+			return Agent.blockAtOffset Input, Dir if Dir
 	
 	# find a sign with specific first line of text
 	Agent.findSign = (Text, Dist = 64) ->
@@ -223,127 +248,114 @@ Inject = (Agent) ->
 				else
 					return Agent.closestChestToBlock Sign, Range
 
-	Agent.navTo = (Position, Retry = 0) ->
-		Fluent new Future (Reject, Resolve) ->
-			return Reject 'navTo: args' if not Position
-			Result = Agent.navigate.findPathSync Position,
-				tooFarThreshold: 150
-			Path = Result.path
-			Walking = false
-			switch Result.status
-				when 'success'
-					Walking = true
-					Agent.navigate.walk Path, (status) ->
-						Walking = false
-						if status == 'arrived'
-							Resolve status
-						else # TODO: deal with interrupted
-							Reject status
-					
-				when 'tooFar'
-					if Retry > 0
-						Walking = true
-						Agent.navigate.walk Path, (status) ->
-							Walking = false
-							if status == 'arrived'
-								nextNav = Agent.navTo Position, Retry - 1
-								# Start the next navTo
-								nextNav.fork Reject, Resolve
-							else
-								Reject status
-					else
-						Reject 'navTo: far'
-				else
-					Reject 'navTo: noPath'
-
-			-> Agent.navigate.stop() if Walking
-
 	Agent.canOpenChest = (Chest) ->
 		if Chest
-			See = Agent.canSeeBlock Chest
 			Open = Agent.entity.position.distanceTo(Chest.position) < 4.5 
-			return See and Open
+			return Open and Agent.canSeeBlock Chest
 
 	Agent.chainable = {}
-	Agent.chainable.openChest = (Chest) ->			# Assume we can open it, do not bother checking.
+	Agent.chainable.walkPath = (Path) ->
 		Fluent new Future (Reject, Resolve) ->
-			if Chest
-				Open = Agent.openChest Chest
-				if Open
-					Open.once 'open', -> Resolve OpenChest
-				else Reject 'openChest: no window'
-			else Reject 'openChest: bad argument #1'
+			Walking = false
+			if Path
+				Walking = true
+				Agent.navigate.walk Path, (Status) ->
+					Walking = false
+					switch Status
+						when 'arrived', 'obstructed'
+							Resolve Status
+						when 'interrupted'
+							Reject Status
+			else Reject 'walkPath: bad argument #1'
+			-> Agent.navigate.stop() if Walking
+
+	Agent.chainable.nav = (Position, Retry = 0) ->
+		Fluent new Future (Reject, Resolve) ->
+			if Position
+				Result = Agent.navigate.findPathSync Agent.toPosition(Position), tooFarThreshold: 150
+				switch Result.status
+					when 'success'
+						return Agent.chainable.walkPath(Result.path).fork Reject, Resolve
+					when 'tooFar'
+						if Retry > 0
+							return Agent.chainable.walkPath(Result.path).and Agent.chainable.nav Position, Retry - 1
+								.fork Reject, Resolve
+						else Reject 'nav: tooFar'
+					else Reject 'nav: noPath'
+
+			else Reject 'nav: bad argument #1'
 			-> 
 
 	Agent.chainable.say = (Message) ->
 		Fluent new Future (Reject, Resolve) ->
 			Agent.chat Message
 			setTimeout Resolve, 250
-	
-	Agent.chainable.withdrawItem = (Open, Item, Amount = 1, Metadata) ->
-
-	Agent.chainable.openLabeledChest = (Label) ->
-		# Walk
-
-
-	# cant use the name withdraw
-	Agent.chainableChestWithdrawalItem = (OpenChest, ResolvesToItem, Amount = 1, Metadata) -> 
-		Fluent new Future (Reject, Resolve) ->
-			I = OpenChest.items()
-			Target = Agent.resolveItem ResolvesToItem
-			found = false
-			if Target
-				for Item in I
-					if Item.name == Target.name
-						OpenChest.withdraw Item.type, Metadata, Amount, (err) ->
-							if err
-								Reject 'chainableChestWithdrawalItem: '+err if err
-							else
-								setTimeout (-> Resolve Item), 175
-						found = true
-						break
-			Reject 'chainableChestWithdrawalItem: item not found' if not found
 			->
-			
-
-	# withdraw a single item from a chest
-	# walk to it if needed
-	Agent.withdrawFromLabeledChest = (ResolvesToItem, ChestLabel) -> # sync findLabeledChest call, navTo call, withdraw call
-		# TODO: support multiple items
+	
+	Agent.chainable.findItem = (Open, Target) ->
 		Fluent new Future (Reject, Resolve) ->
-			if not (ChestLabel and ResolvesToItem)
-				Reject 'withdrawFromLabeledChest.args' 
-				return -> 
-			Chest = Agent.findLabeledChest ChestLabel
-			if Agent.canOpenChest Chest
-				openAndWithdraw = Agent.chainableOpenChest(Chest).chain (OpenChest) ->
-					# console.log OpenChest
-					Agent.chainableChestWithdrawalItem(OpenChest, ResolvesToItem).map -> OpenChest.close()
-						###new Future (_, R) ->
-							Resolve OpenChest.close()
-							-> ###
-						
-				return openAndWithdraw.fork Reject, Resolve
-			else if Chest
-				Pos = Agent.findStandableGroundPosition Chest
-				if Pos
-					# navigate
-					walk = Agent.navTo(Pos).chain -> Agent.withdrawFromLabeledChest ResolvesToItem, ChestLabel
-					###walk = Agent.navTo(Pos).chain(->
-						Agent.chainableOpenChest(Chest)
-					).chain (Window) ->
-						Agent.chainableChestWithdrawalItem(Window, ResolvesToItem)####
-					return walk.fork Reject, Resolve
-				Reject 'withdrawFromLabeledChest: no standable ground'
-				return ->
-			else
-				Reject 'withdrawFromLabeledChest: cant find chest'
-				return ->
-
-
-	Agent.depositIntoLabeledChest = (ResolvesToItem, ChestLabel) -> # sync findLabeledChest call, navTo call, deposit call
+			Target = Agent.resolveItem Target
+			if Target
+				for Item in Open.items()
+					if Item.name == Target.name
+						Resolve Item
+						return ->
+				Reject 'findItem: not found'
+			else Reject 'findItem: invalid item'
+			->
+	Agent.chainable.withdrawItem = (Open, Item, Amount = 1, Metadata) ->
 		Fluent new Future (Reject, Resolve) ->
-			Reject 'not implemented'
+			Open.withdraw Item.type, Metadata, Amount, (err) ->
+				if not err
+					setTimeout Resolve, 250
+				else Reject 'withdrawItem: '+err
+			->
+
+	Agent.chainable.getNear = (Position, Retry = 0) ->
+		Fluent new Future (Reject, Resolve) ->
+			if Position
+				Near = Agent.findStandableGroundPosition Position
+				if Near
+					Agent.chainable.nav Near, Retry
+						.fork Reject, Resolve
+				else Reject 'getNear: no good position'
+			else Reject 'getNear: bad argument #1'
+			->
+
+	Agent.chainable.closeChest = (Chest) ->			# Assume we can open it, do not bother checking.
+		Fluent new Future (Reject, Resolve) ->
+			if Chest
+				if Chest.window
+					Chest.close()
+					Resolve()
+				else Reject 'closeChest: no window'
+			else Reject 'closeChest: bad argument #1'
+			->
+
+	Agent.chainable.openChest = (Chest) ->			# Assume we can open it, do not bother checking.
+		Fluent new Future (Reject, Resolve) ->
+			if Chest
+				Open = Agent.openChest Chest
+				if Open
+					Open.once 'open', -> Resolve Open
+				else Reject 'openChest: no window'
+			else Reject 'openChest: bad argument #1'
+			->
+
+	Agent.chainable.openLabeledChest = (Label, Retry = 0) -> # Label -> Chest
+		Fluent new Future (Reject, Resolve) ->
+			if Label
+				Chest = Agent.findLabeledChest Label # Eventually have this done by hivemine
+				if Agent.canOpenChest Chest
+					return Agent.chainable.openChest Chest
+						.fork Reject, Resolve
+				else if Chest
+					return Agent.chainable.getNear Chest, Retry
+						.and Agent.chainable.openLabeledChest Chest, Retry - 1
+						.fork Reject, Resolve
+				else Reject 'openLabeledChest: no chest'
+			else Reject 'openLabeledChest: bad argument #1'
+			->
 
 	Agent.walkToSign = (Text) -> # findSign call, navTo call
 		Fluent new Future (Reject, Resolve) ->
@@ -363,14 +375,13 @@ Inject = (Agent) ->
 
 	Agent.begin = (F) ->
 		if Agent.Free
-			console.log 'go time'
 			Agent.Free = false
 			taskCompleted = ->
 				Agent.Free = true
 			taskFailed = (code) ->
 				# TODO: tell Hivemine
+				console.error code
 				Agent.Free = true
-			console.log 'forking rn'
 			return F.fork taskFailed, taskCompleted
 		# TODO: Queue up tasks?
 
@@ -380,6 +391,5 @@ Inject = (Agent) ->
 	Agent.hivemineInit = (Hivemine) ->
 		Agent.Hivemine = Hivemine
 		Agent.Free = true
-		console.log 'free',Agent.Free
 
 module.exports = Init
