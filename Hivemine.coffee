@@ -21,9 +21,9 @@ path = require 'path'
 class ServerInformation
 	constructor: (@Host, @Port = 25565, @Name) ->
 		Parts = @Host.split ':'
-		if Parts.length
+		if Parts.length > 1
 			@Port = parseInt Parts[1]	# Server port
-			@Host = Parts[0]			# Server host
+			@Host = Parts[0]		# Server host
 			@Name = @Host if not @Name 	# Name for flatfile DB
 
 class Hivemine extends EventEmitter # thanks wvffle!
