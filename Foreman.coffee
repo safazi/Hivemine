@@ -25,10 +25,16 @@ class Action
 	constructor: (@Difficulty = Difficulty.Varying, @Name) ->
 		@Requirements = []
 		@State = {}
-	require: (P) -> @Requirements.push P
+	require: (P) ->
+		P.Parent = @
+		@Requirements.push P
 	init: -> # Add requirements sync
 	setState: (@State = {}) ->
 	setAgent: (@Agent) ->
+	getDepth: ->
+		if @Parent
+			return 1 + @Parent.getDepth()
+		return 0	
 	choose: (Actions) ->
 		Lowest = undefined
 		Choice = undefined
@@ -105,44 +111,6 @@ PREREQUISITE:
 
 ###
 
-###
-class Grab extends Action
-	constructor: (@Thing) -> super Difficulty.Varying, 'ACTION GRAB'
-	execute: -> 
-		Fluent new Future (Reject, Resolve) =>
-			console.log 'Grabbing', @thing
-			setTimeout Reject, 500
-			->
-
-class Yeet extends Action
-	constructor: -> super Difficulty.Free, 'ACTION YEET'
-	init: -> console.log 'init yeet'
-	execute: ->
-		Fluent new Future (Reject, Resolve) ->
-			console.log 'executing yeet but its gonna fail'
-			setTimeout Reject, 250
-			->
-
-class Need extends Prerequisite
-	constructor: (@Thing) -> super Priorities.Minor, 'Need'
-	suggest: -> [
-		new Yeet(),
-		new Grab @Thing]
-
-class GoToSchool extends Action
-	constructor: -> super Difficulty.Hard, 'GoToSchool'
-	init: ->
-		@require new Need 'keys' 
-	execute: ->
-		Fluent new Future (Reject, Resolve) ->
-			console.log 'Driving to school'
-			setTimeout Resolve, 4000
-			->
-
-X = new GoToSchool()
-X.start().fork console.log, console.error
-###
-
 EventEmitter = require 'events'
 
 class Manager extends EventEmitter
@@ -158,7 +126,7 @@ class Manager extends EventEmitter
 			console.log 'Success'
 		Fail = (S) =>
 			@emit 'fail'
-			console.error 'Failure',S
+			console.error 'Failure:',S.message
 		Action.start(@State, @Agent).fork Fail, Done
 
 module.exports = {

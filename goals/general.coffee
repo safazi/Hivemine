@@ -155,9 +155,6 @@ module.exports = (Actions, Needs) ->
 		constructor: -> super Difficulty.Varying, 'getnearblock'
 		execute: -> Fluent Future.resolve()
 
-
-		
-
 ###
 
 + craft 'diamond_sword'

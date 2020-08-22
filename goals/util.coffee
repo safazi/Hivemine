@@ -20,7 +20,7 @@ Difficulty =
 
 module.exports = (Actions, Needs) ->
 	class Action.fail extends Action
-		constructor: (@Reason 'fail: unspecified') -> super Difficulty.Free, 'failure'
+		constructor: (@Reason = 'fail: unspecified') -> super Difficulty.Free, 'failure'
 		execute: -> Fluent Future.reject @Reason
 	
 	class Actions.all extends Action
@@ -29,5 +29,5 @@ module.exports = (Actions, Needs) ->
 		execute: -> Fluent Future.resolve()
 
 	class Actions.optional extends Action
-		constructor: (@Action = X) -> super Difficulty.Varying, 'all'
+		constructor: (@Action) -> super Difficulty.Varying, 'all'
 		execute: -> Fluent new Future (Reject, Resolve) -> X.start(@Agent, @State).fork Resolve, Resolve

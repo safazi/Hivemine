@@ -37,7 +37,7 @@ module.exports = (Actions, Needs) ->
 				for I in @Recipe.delta
 					if I.count < 0
 						console.log 'i need',-1*I.count,@Agent.resolveItem(I.id).name
-						Needed = -1*I.count * Math.ceil @ExpectedQuantity/recipe.result.count
+						Needed = -1*I.count * Math.ceil @ExpectedQuantity/@Recipe.result.count
 						@require new Needs.item I.id, Needed
 			else
 				WithTable = @Agent.recipesAll @Item.id, @Metadata, true
@@ -51,7 +51,7 @@ module.exports = (Actions, Needs) ->
 					for I in @Recipe.delta
 						if I.count < 0
 							console.log 'i need',-1*I.count,@Agent.resolveItem(I.id).name
-							Needed = -1*I.count * Math.ceil @ExpectedQuantity/recipe.result.count
+							Needed = -1*I.count * Math.ceil @ExpectedQuantity/@Recipe.result.count
 							@require new Needs.item I.id, Needed
 					@require new Needs.tempBlock 'crafting_table'
 					@require new Actions.getNearBlock 'crafting_table'
