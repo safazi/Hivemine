@@ -1,6 +1,8 @@
-# Hivemine
+# THIS PROJECT HAS BEEN ARCHIVED
 
-[![Join the chat at https://gitter.im/Hivemine/community](https://badges.gitter.im/Hivemine/community.svg)](https://gitter.im/Hivemine/community)
+I have decided to sunset Hivemine as an open-source bot. Hivemine is being rewritten and will be closed-source for the forseeable future. If you are interested in joining the project, please shoot me an email.
+
+# Hivemine
 
 _a server-dominating Minecraft bot, powered by Mineflayer_
 ***
